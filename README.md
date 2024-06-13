@@ -29,7 +29,7 @@ To get started with the Sound Board project, follow these steps:
 
 1. **Clone the Repository**
    ```
-   git clone https://your-repository-url.git
+   git clone https://github.com/TheVic489/sound-board
    ```
 
 2. **Navigate to the Backend Directory**
