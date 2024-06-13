@@ -22,6 +22,28 @@ const createSoundBox = (title, type, filename) => {
   soundGrid.appendChild(soundBox);
 };
 
+// Fetch and display files from the server
+const loadFiles = async () => {
+  try {
+    console.log(apiUrl)
+    const response = await fetch(`${apiUrl}/files`);
+    console.log(response) // This gives me a readable stream 
+    const files = await response.json();
+
+    if (Object.keys(files).length === 0) {
+      showMessage('No hay archivos cargados.');
+      return;
+    }
+
+    files.forEach(file => {
+      createSoundBox(file.title, file.type, file.filename);
+    });
+  } catch (error) {
+    showMessage('Error al cargar los archivos');
+    console.log(error)
+  }
+};
+
 // Function to handle MP3 form submission
 const handleMP3FormSubmit = async (event) => {
   event.preventDefault();
@@ -71,19 +93,24 @@ const handleYouTubeFormSubmit = async (event) => {
 
 // Function to handle sound box button clicks
 const handleSoundBoxClick = (event) => {
+  // Send the filename to the server to play in the server
   const button = event.target;
-  if (button.tagName === 'BUTTON') {
-    const type = button.getAttribute('data-type');
-    const filename = button.getAttribute('data-filename');
-    if (type === 'mp3') {
-      new Audio(`${apiUrl}/play/mp3/${filename}`).play();
-    } else if (type === 'youtube') {
-      new Audio(`${apiUrl}/play/youtube/${filename}`).play();
-    }
-  }
+  const filename = button.getAttribute('data-filename');
+  
+  const sendRequest = async () => {
+    const response = await fetch(`${apiUrl}/play/${filename}`);
+    const result = await response.text();
+    // showMessage(result);
+  };
+
+  sendRequest();
+
 };
 
 // Attach event listeners
 document.getElementById('mp3-form').addEventListener('submit', handleMP3FormSubmit);
 document.getElementById('youtube-form').addEventListener('submit', handleYouTubeFormSubmit);
 document.getElementById('sound-grid').addEventListener('click', handleSoundBoxClick);
+
+// Load files on page load
+window.onload = loadFiles;

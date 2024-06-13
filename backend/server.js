@@ -5,7 +5,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-
+const player = require('play-sound')(opts= {});
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -24,73 +24,92 @@ app.use(
 
 // Ruta para subir y guardar archivos MP3
 app.post('/api/play/mp3', upload.single('file'), (req, res) => {
+  console.log('Subiendo archivo MP3...');
   if (!req.file) {
+    console.error('No se ha subido ningún archivo.');
     return res.status(400).send('No se ha subido ningún archivo.');
   }
-  
+
   const targetPath = path.join(__dirname, 'uploads', req.file.originalname);
 
   fs.rename(req.file.path, targetPath, (err) => {
     if (err) {
+      console.error('Error al guardar el archivo:', err);
       return res.status(500).send('Error al guardar el archivo.');
     }
 
+    console.log(`Archivo ${req.file.originalname} subido y guardado con éxito.`);
     res.send(`Archivo ${req.file.originalname} subido y guardado con éxito.`);
   });
 });
 
-// Ruta para reproducir un archivo MP3
-app.get('/api/play/mp3/:filename', (req, res) => {
-  const filePath = path.join(__dirname, 'uploads', req.params.filename);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send('Archivo no encontrado.');
-  }
-
-  const stream = fs.createReadStream(filePath);
-  const command = ffmpeg(stream)
-    .audioCodec('libmp3lame')
-    .format('mp3');
-
-  res.setHeader('Content-Type', 'audio/mp3');
-  command.pipe(res);
-});
-
 // Ruta para añadir y reproducir un video de YouTube
 app.post('/api/play/youtube', async (req, res) => {
+  console.log('Añadiendo video de YouTube...');
   const { url } = req.body;
 
   if (!ytdl.validateURL(url)) {
+    console.error('URL de YouTube no válida:', url);
     return res.status(400).send('URL de YouTube no válida.');
   }
 
-  const info = await ytdl.getInfo(url);
-  const title = info.videoDetails.title;
-  const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+  try {
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title;
+    const filePath = path.join(__dirname, 'uploads', `${title}.mp3`);
 
-  const filePath = path.join(__dirname, 'uploads', `${title}.mp3`);
-  const stream = ytdl(url, { format });
+    const stream = ytdl(url, { filter: 'audioonly' });
+    const command = ffmpeg(stream)
+      .audioCodec('libmp3lame')
+      .format('mp3')
+      .save(filePath);
 
-  stream.pipe(fs.createWriteStream(filePath))
-    .on('finish', () => {
+    command.on('end', () => {
+      console.log(`Video de YouTube ${title} descargado y guardado con éxito.`);
       res.send(`Video de YouTube ${title} descargado y guardado con éxito.`);
-    })
-    .on('error', (err) => {
+    });
+
+    command.on('error', (err) => {
+      console.error('Error al descargar el video de YouTube:', err);
       res.status(500).send('Error al descargar el video de YouTube.');
     });
+
+  } catch (err) {
+    console.error('Error al obtener información del video de YouTube:', err);
+    res.status(500).send('Error al obtener información del video de YouTube.');
+  }
 });
 
-// Ruta para reproducir un video de YouTube guardado como MP3
-app.get('/api/play/youtube/:filename', (req, res) => {
+// Ruta para obtener la lista de archivos
+app.get('/api/files', (req, res) => {
+  const files = fs.readdirSync(path.join(__dirname, 'uploads')).map(file => ({
+    title: file,
+    filename: file,
+    type: path.extname(file) === '.mp3' ? 'mp3' : 'unknown'
+  }));
+
+  res.json(files);
+});
+
+// Ruta para reproducir un archivo
+app.get('/api/play/:filename', (req, res) => {
   const filePath = path.join(__dirname, 'uploads', req.params.filename);
 
   if (!fs.existsSync(filePath)) {
+    console.error('Archivo no encontrado:', req.params.filename);
     return res.status(404).send('Archivo no encontrado.');
   }
+  console.log(filePath);
+  player.play(filePath, function(err) {
+    if (err) {
+      console.error('Error al reproducir el archivo:', err);
+      return res.status(500).send('Error al reproducir el archivo.');
+    } else {
+      return res.send(`Archivo ${req.params.filename} reproducido con éxito.`);
+    }
+  });
 
-  const stream = fs.createReadStream(filePath);
-  res.setHeader('Content-Type', 'audio/mp3');
-  stream.pipe(res);
+  console.log(`Reproduciendo archivo: ${req.params.filename}`);
 });
 
 app.listen(PORT, () => {
