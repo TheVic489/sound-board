@@ -4,17 +4,26 @@ const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const upload = multer({ dest: 'uploads/' });
 
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use( 
+	cors({
+		origin: '*',	
+		methods: ["GET", "POST"],
+		allowedHeaders: ["Content-Type", "Authorization"],
+	})
+);
 
 // Ruta para subir y guardar archivos MP3
-app.post('/play/mp3', upload.single('file'), (req, res) => {
+app.post('/api/play/mp3', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).send('No se ha subido ningún archivo.');
   }
@@ -31,7 +40,7 @@ app.post('/play/mp3', upload.single('file'), (req, res) => {
 });
 
 // Ruta para reproducir un archivo MP3
-app.get('/play/mp3/:filename', (req, res) => {
+app.get('/api/play/mp3/:filename', (req, res) => {
   const filePath = path.join(__dirname, 'uploads', req.params.filename);
 
   if (!fs.existsSync(filePath)) {
@@ -48,7 +57,7 @@ app.get('/play/mp3/:filename', (req, res) => {
 });
 
 // Ruta para añadir y reproducir un video de YouTube
-app.post('/play/youtube', async (req, res) => {
+app.post('/api/play/youtube', async (req, res) => {
   const { url } = req.body;
 
   if (!ytdl.validateURL(url)) {
@@ -72,7 +81,7 @@ app.post('/play/youtube', async (req, res) => {
 });
 
 // Ruta para reproducir un video de YouTube guardado como MP3
-app.get('/play/youtube/:filename', (req, res) => {
+app.get('/api/play/youtube/:filename', (req, res) => {
   const filePath = path.join(__dirname, 'uploads', req.params.filename);
 
   if (!fs.existsSync(filePath)) {
