@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Board</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Sound Board</h1>
+  </header>
+  
+    <section class="form-section">
+
+      <form id="mp3-form" class="upload-form">
+        <input type="file" id="mp3-file" accept="audio/mp3" required>
+        <button type="submit">Añadir MP3</button>
+      </form>
+
+      <form id="youtube-form" class="upload-form">
+        <input type="url" id="youtube-url" placeholder="URL de YouTube" required>
+        <button type="submit">Añadir YouTube</button>
+      </form>
+
+    </section>
+    <section class="grid-section" id="sound-grid">
+      <!-- Buttons will be dynamically added here -->
+    </section>
+  </main>
+
+  <div id="message-container" class="message-container"></div>
+  
+  <script src="app.js"></script>
+
+</body>
+</html>
